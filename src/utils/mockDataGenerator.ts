@@ -283,10 +283,103 @@ export function generateRandomRequest(source: string = 'example.com'): NetworkRe
   };
 }
 
-export function generateWebsiteScan(domainInput: string): WebsiteScanResult {
-  const cleanDomain = domainInput.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0] || 'example.com';
-  
-  // Deterministic seed generation based on string
+/**
+ * Validates whether the input is a valid website domain or URL.
+ *
+ * Valid examples:
+ *   example.com, https://example.com, www.news.co.in,
+ *   sub.domain.org/path, http://192.168.1.1:8080
+ *
+ * Invalid examples:
+ *   hello, 12345, just some random text, foo@bar, !!!
+ *
+ * Returns an object with:
+ *   isValid  – boolean
+ *   cleaned  – the extracted domain (only meaningful when isValid === true)
+ *   error    – human-readable error message (only when isValid === false)
+ */
+export function validateWebsite(raw: string): {
+  isValid: boolean;
+  cleaned: string;
+  error: string;
+} {
+  const trimmed = raw.trim();
+
+  // ── Basic empty check ──────────────────────────────────────────────
+  if (!trimmed) {
+    return { isValid: false, cleaned: '', error: 'Please enter a website URL or domain.' };
+  }
+
+  // ── Strip protocol and www, extract domain portion ─────────────────
+  const cleaned = trimmed
+    .replace(/^(https?:\/\/)?(www\.)?/, '')   // remove protocol & www
+    .split('/')[0]                             // drop path
+    .split('?')[0]                             // drop query string
+    .split('#')[0]                             // drop hash
+    .split(':')[0]                             // drop port
+    .toLowerCase();
+
+  // ── Must not be empty after cleaning ───────────────────────────────
+  if (!cleaned) {
+    return { isValid: false, cleaned: '', error: 'Could not extract a valid domain from the input.' };
+  }
+
+  // ── Must not contain spaces ────────────────────────────────────────
+  if (/\s/.test(cleaned)) {
+    return {
+      isValid: false,
+      cleaned: '',
+      error: `"${trimmed}" contains spaces — a valid domain cannot have spaces.`
+    };
+  }
+
+  // ── Must contain at least one dot (TLD required) ───────────────────
+  //    Exception: "localhost" is accepted for dev purposes.
+  if (!cleaned.includes('.') && cleaned !== 'localhost') {
+    return {
+      isValid: false,
+      cleaned: '',
+      error: `"${trimmed}" is not a website. A valid domain must have a TLD (e.g. .com, .org, .in).`
+    };
+  }
+
+  // ── Regex: valid domain characters (letters, digits, hyphens, dots) ─
+  const domainRegex = /^[a-z0-9]([a-z0-9\-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]*[a-z0-9])?)+$/;
+  const ipRegex     = /^(\d{1,3}\.){3}\d{1,3}$/;
+
+  if (!domainRegex.test(cleaned) && !ipRegex.test(cleaned) && cleaned !== 'localhost') {
+    return {
+      isValid: false,
+      cleaned: '',
+      error: `"${trimmed}" contains invalid characters. Use only letters, numbers, hyphens, and dots.`
+    };
+  }
+
+  // ── TLD must be at least 2 characters ──────────────────────────────
+  if (!ipRegex.test(cleaned) && cleaned !== 'localhost') {
+    const tld = cleaned.split('.').pop() || '';
+    if (tld.length < 2) {
+      return {
+        isValid: false,
+        cleaned: '',
+        error: `"${trimmed}" has an invalid TLD ".${tld}". TLDs must be at least 2 characters (e.g. .com, .io).`
+      };
+    }
+  }
+
+  return { isValid: true, cleaned, error: '' };
+}
+
+export function generateWebsiteScan(domainInput: string): WebsiteScanResult | null {
+  // ── Step 1: Validate that the input is actually a website ──────────
+  const validation = validateWebsite(domainInput);
+  if (!validation.isValid) {
+    return null; // caller handles the error via validateWebsite()
+  }
+
+  const cleanDomain = validation.cleaned;
+
+  // ── Step 2: Deterministic seed from domain string ──────────────────
   let hash = 0;
   for (let i = 0; i < cleanDomain.length; i++) {
     hash = cleanDomain.charCodeAt(i) + ((hash << 5) - hash);

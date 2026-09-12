@@ -1,21 +1,40 @@
 import React, { useState } from 'react';
-import { generateWebsiteScan } from '../utils/mockDataGenerator';
+import { generateWebsiteScan, validateWebsite } from '../utils/mockDataGenerator';
 import { downloadPrivacyReport } from '../utils/exportReport';
 import { WebsiteScanResult } from '../types/privacy';
-import { Search, ShieldAlert, Download, CheckCircle, AlertTriangle, RefreshCw, Globe } from 'lucide-react';
+import { Search, ShieldAlert, Download, CheckCircle, AlertTriangle, RefreshCw, Globe, XCircle } from 'lucide-react';
 
 export const ScannerModal: React.FC = () => {
   const [domainInput, setDomainInput] = useState<string>('example.com');
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [scanStep, setScanStep] = useState<string>('');
   const [scanResult, setScanResult] = useState<WebsiteScanResult | null>(generateWebsiteScan('example.com'));
+  const [validationError, setValidationError] = useState<string>('');
 
   const handleScan = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!domainInput.trim()) return;
+    if (!domainInput.trim()) {
+      setValidationError('Please enter a website URL or domain.');
+      setScanResult(null);
+      return;
+    }
 
+    // ── Step 1: Validate FIRST — is this actually a website? ──────────
+    const validation = validateWebsite(domainInput);
+
+    if (!validation.isValid) {
+      setValidationError(validation.error);
+      setScanResult(null);
+      setIsScanning(false);
+      setScanStep('');
+      return;
+    }
+
+    // ── Step 2: Input is valid — clear errors and start scanning ──────
+    setValidationError('');
     setIsScanning(true);
-    setScanStep('1/4 Connecting to domain & parsing DNS topology...');
+    setScanResult(null);
+    setScanStep('1/4 Resolving DNS & verifying domain reachability...');
 
     setTimeout(() => {
       setScanStep('2/4 Auditing outbound 3rd-party tracking scripts...');
@@ -59,9 +78,17 @@ export const ScannerModal: React.FC = () => {
           <input
             type="text"
             value={domainInput}
-            onChange={e => setDomainInput(e.target.value)}
+            onChange={e => {
+              setDomainInput(e.target.value);
+              // Clear error as user types
+              if (validationError) setValidationError('');
+            }}
             placeholder="Enter website domain (e.g. news-portal.com)"
-            className="w-full bg-slate-900 border border-cyber-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            className={`w-full bg-slate-900 border rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none transition-colors ${
+              validationError
+                ? 'border-red-500/70 focus:border-red-400'
+                : 'border-cyber-border focus:border-blue-500'
+            }`}
           />
         </div>
         <button
@@ -82,6 +109,25 @@ export const ScannerModal: React.FC = () => {
           )}
         </button>
       </form>
+
+      {/* ── VALIDATION ERROR BANNER ── */}
+      {validationError && (
+        <div className="flex items-start gap-3 p-4 bg-red-950/40 border border-red-500/40 rounded-xl animate-[fadeIn_0.3s_ease-out]">
+          <div className="p-1.5 bg-red-500/20 rounded-lg shrink-0">
+            <XCircle className="w-5 h-5 text-red-400" />
+          </div>
+          <div className="flex-1 space-y-1">
+            <p className="text-sm font-bold text-red-300">Invalid Website</p>
+            <p className="text-xs text-red-400/90">{validationError}</p>
+            <p className="text-[10px] text-slate-500 mt-1">
+              Valid examples: <span className="text-slate-400">google.com</span>,{' '}
+              <span className="text-slate-400">https://news18.com</span>,{' '}
+              <span className="text-slate-400">sub.domain.co.in</span>,{' '}
+              <span className="text-slate-400">192.168.1.1</span>
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Progress animation during scan */}
       {isScanning && (
