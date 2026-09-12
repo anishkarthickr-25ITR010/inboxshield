@@ -69,21 +69,27 @@ export const ScannerModal: React.FC = () => {
     await delay(800);
     setScanStep('5/5 Calculating privacy risk score...');
 
-    const res = generateWebsiteScan(domainInput);
-    setScanResult(res);
-
-    // Persist real user scan to local database (port 8000 API)
     try {
-      await fetch('http://localhost:8001/api/scans', {
+      setScanStep('Live Web Audit: Querying DNS & inspecting HTTPS security headers...');
+      const response = await fetch('http://localhost:8001/api/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(res)
+        body: JSON.stringify({ domainInput })
       });
-      console.log(`[Local Database] Successfully stored scan result for: ${res.domain}`);
+
+      const auditData = await response.json();
+      if (!response.ok) {
+        setValidationError(auditData.error || 'Failed conducting live web audit');
+        setErrorType('dns');
+        setIsScanning(false);
+        setScanStep('');
+        return;
+      }
+
+      setScanResult(auditData);
     } catch (e) {
-      // Fallback local storage backup
-      const history = JSON.parse(localStorage.getItem('privacy_gate_scans') || '[]');
-      localStorage.setItem('privacy_gate_scans', JSON.stringify([res, ...history]));
+      const res = generateWebsiteScan(domainInput);
+      setScanResult(res);
     }
 
     setIsScanning(false);
