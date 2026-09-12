@@ -117,39 +117,76 @@ app.post('/api/audit', async (req, res) => {
       }
     }
 
-    // 3. REAL CALCULATED PRIVACY & SECURITY SCORES (MATH FROM ACTUAL HEADERS)
-    const hasHSTS = !!headers['strict-transport-security'];
-    const hasCSP = !!headers['content-security-policy'];
+    // 3. HIGH-ACCURACY 12-FACTOR PRIVACY & SECURITY CALCULATION ENGINE
+    const hstsVal = headers['strict-transport-security'] || '';
+    const hasHSTS = !!hstsVal;
+    const hstsIncludesSubdomains = hstsVal.includes('includeSubDomains');
+    const hstsPreload = hstsVal.includes('preload');
+
+    const cspVal = headers['content-security-policy'] || '';
+    const hasCSP = !!cspVal;
+    const cspStrict = hasCSP && !cspVal.includes("'unsafe-inline'") && !cspVal.includes("'unsafe-eval'");
+
     const hasXFrame = !!headers['x-frame-options'];
-    const hasXContentType = !!headers['x-content-type-options'];
-    const hasReferrerPolicy = !!headers['referrer-policy'];
+    const hasXContentType = (headers['x-content-type-options'] || '').toLowerCase().includes('nosniff');
+    const referrerVal = headers['referrer-policy'] || '';
+    const hasStrictReferrer = ['no-referrer', 'strict-origin-when-cross-origin', 'same-origin', 'no-referrer-when-downgrade'].some(p => referrerVal.includes(p));
     const hasPermissionsPolicy = !!headers['permissions-policy'] || !!headers['feature-policy'];
 
+    // Cross-Origin Security Headers
+    const hasCOOP = !!headers['cross-origin-opener-policy'];
+    const hasCOEP = !!headers['cross-origin-embedder-policy'];
+    const hasCORP = !!headers['cross-origin-resource-policy'];
+
+    // Information Disclosure Penalty
+    const serverBanner = headers['server'] || '';
+    const xPoweredBy = headers['x-powered-by'] || '';
+    const disclosesVersion = /\d+\.\d+/.test(serverBanner) || !!xPoweredBy;
+
+    // Cookie Security Audit
     const totalCookies = setCookieHeader.length;
     const httpOnlyCookies = setCookieHeader.filter(c => /httponly/i.test(c)).length;
     const secureCookies = setCookieHeader.filter(c => /secure/i.test(c)).length;
-    const samesiteCookies = setCookieHeader.filter(c => /samesite/i.test(c)).length;
+    const samesiteCookies = setCookieHeader.filter(c => /samesite=(strict|lax)/i.test(c)).length;
 
-    let trackingScore = 40;
+    // 1. TRACKING AUDIT SCORE (Weight: 25%)
+    let trackingScore = 30;
     if (hasCSP) trackingScore += 25;
-    if (hasReferrerPolicy) trackingScore += 20;
-    if (hasPermissionsPolicy) trackingScore += 15;
+    if (cspStrict) trackingScore += 15;
+    if (hasStrictReferrer) trackingScore += 20;
+    if (hasPermissionsPolicy) trackingScore += 10;
 
-    let fingerprintingScore = 50;
+    // 2. FINGERPRINTING AUDIT SCORE (Weight: 25%)
+    let fingerprintingScore = 35;
     if (hasPermissionsPolicy) fingerprintingScore += 25;
-    if (hasCSP) fingerprintingScore += 25;
+    if (hasCSP) fingerprintingScore += 20;
+    if (hasCOOP) fingerprintingScore += 10;
 
-    let dataLeakScore = 30;
+    // 3. DATA LEAK AUDIT SCORE (Weight: 25%)
+    let dataLeakScore = 20;
     if (hasHSTS) dataLeakScore += 25;
+    if (hstsIncludesSubdomains) dataLeakScore += 10;
+    if (hstsPreload) dataLeakScore += 5;
     if (hasSPF) dataLeakScore += 20;
-    if (hasDMARC) dataLeakScore += 25;
+    if (hasDMARC) dataLeakScore += 20;
+    if (disclosesVersion) dataLeakScore -= 10; // Information disclosure penalty
 
+    // 4. STORAGE & COOKIE SECURITY AUDIT SCORE (Weight: 25%)
     let storageSecurityScore = 50;
     if (totalCookies > 0) {
-      storageSecurityScore = Math.round(((httpOnlyCookies + secureCookies + samesiteCookies) / (totalCookies * 3)) * 100);
+      const httpOnlyRatio = httpOnlyCookies / totalCookies;
+      const secureRatio = secureCookies / totalCookies;
+      const samesiteRatio = samesiteCookies / totalCookies;
+      storageSecurityScore = Math.round((httpOnlyRatio * 35) + (secureRatio * 35) + (samesiteRatio * 30));
     } else {
       storageSecurityScore = 95;
     }
+
+    // Clamp score values between 0 and 100
+    trackingScore = Math.min(100, Math.max(0, trackingScore));
+    fingerprintingScore = Math.min(100, Math.max(0, fingerprintingScore));
+    dataLeakScore = Math.min(100, Math.max(0, dataLeakScore));
+    storageSecurityScore = Math.min(100, Math.max(0, storageSecurityScore));
 
     const overallScore = Math.round((trackingScore + fingerprintingScore + dataLeakScore + storageSecurityScore) / 4);
     const riskLevel = overallScore >= 80 ? 'low' : overallScore >= 60 ? 'medium' : overallScore >= 40 ? 'high' : 'critical';
@@ -197,7 +234,7 @@ app.post('/api/audit', async (req, res) => {
     }
 
     const sensitiveLeaks = [];
-    if (!hasHSTS || !hasReferrerPolicy) {
+    if (!hasHSTS || !hasStrictReferrer) {
       sensitiveLeaks.push({
         id: 'leak-real-1',
         timestamp: new Date().toTimeString().split(' ')[0],
@@ -224,7 +261,7 @@ app.post('/api/audit', async (req, res) => {
           hasCSP,
           hasXFrame,
           hasXContentType,
-          hasReferrerPolicy,
+          hasStrictReferrer,
           hasPermissionsPolicy
         },
         dns: {
