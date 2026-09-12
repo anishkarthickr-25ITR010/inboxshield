@@ -23,6 +23,45 @@ async function startServer() {
 }
 
 // ═════════════════════════════════════════════════════════════════════
+// 0. ROOT LANDING PAGE (PORT 8001)
+// ═════════════════════════════════════════════════════════════════════
+app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>Privacy Gate SQL Database Server</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 40px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 32px; max-width: 600px; width: 100%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
+        h1 { color: #38bdf8; margin-top: 0; font-size: 24px; display: flex; align-items: center; gap: 10px; }
+        .badge { background: #0284c7; color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        p { color: #94a3b8; line-height: 1.6; }
+        .btn { display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: bold; margin-top: 20px; transition: background 0.2s; }
+        .btn:hover { background: #1d4ed8; }
+        .endpoint { background: #0f172a; padding: 8px 12px; border-radius: 6px; font-family: monospace; color: #38bdf8; font-size: 13px; margin-bottom: 6px; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <h1>🛡️ Privacy Gate SQLite Backend <span class="badge">ONLINE</span></h1>
+        <p>This is the <strong>SQLite3 Relational Database Backend API</strong> running on <code>http://localhost:8001</code>.</p>
+        
+        <h3>Available API Endpoints:</h3>
+        <div class="endpoint">GET <a href="/api/health" style="color:#38bdf8">/api/health</a> - Database diagnostics & SQL stats</div>
+        <div class="endpoint">GET <a href="/api/scans" style="color:#38bdf8">/api/scans</a> - Retrieve all stored website scans</div>
+        <div class="endpoint">GET <a href="/api/stats" style="color:#38bdf8">/api/stats</a> - Aggregated scan metrics</div>
+        <div class="endpoint">POST /api/scans - Save real website scan result</div>
+
+        <a href="http://localhost:8000" class="btn">🚀 Open Privacy Gate Web App (Port 8000)</a>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
+// ═════════════════════════════════════════════════════════════════════
 // 1. HEALTH & DATABASE DIAGNOSTICS ENDPOINT
 // ═════════════════════════════════════════════════════════════════════
 app.get('/api/health', async (req, res) => {
