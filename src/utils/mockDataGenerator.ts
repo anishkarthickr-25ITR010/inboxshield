@@ -370,6 +370,74 @@ export function validateWebsite(raw: string): {
   return { isValid: true, cleaned, error: '' };
 }
 
+/**
+ * Checks whether a domain actually exists on the internet
+ * by performing a real DNS lookup via Google's public DNS-over-HTTPS API.
+ *
+ * Returns:
+ *   exists  – true if the domain resolves to at least one IP address
+ *   error   – human-readable error message if the domain does not exist
+ */
+export async function checkDomainExists(domain: string): Promise<{
+  exists: boolean;
+  error: string;
+}> {
+  try {
+    // Google Public DNS JSON API — free, no key needed, CORS-friendly
+    const response = await fetch(
+      `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=A`,
+      { signal: AbortSignal.timeout(5000) } // 5-second timeout
+    );
+
+    if (!response.ok) {
+      return {
+        exists: false,
+        error: `DNS lookup failed (HTTP ${response.status}). Check your internet connection.`
+      };
+    }
+
+    const data = await response.json();
+
+    // DNS response status codes:
+    // 0 = NOERROR (domain exists), 3 = NXDOMAIN (domain does not exist)
+    if (data.Status === 0 && data.Answer && data.Answer.length > 0) {
+      return { exists: true, error: '' };
+    }
+
+    if (data.Status === 3) {
+      return {
+        exists: false,
+        error: `"${domain}" does not exist — DNS lookup returned NXDOMAIN. This is not a registered website.`
+      };
+    }
+
+    // Domain exists in DNS but has no A records (no IP address)
+    if (data.Status === 0 && (!data.Answer || data.Answer.length === 0)) {
+      return {
+        exists: false,
+        error: `"${domain}" has no IP address (no DNS A record found). The domain may be parked or misconfigured.`
+      };
+    }
+
+    return {
+      exists: false,
+      error: `"${domain}" could not be verified as a real website (DNS status: ${data.Status}).`
+    };
+  } catch (err: any) {
+    // Network error or timeout — could be offline
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+      return {
+        exists: false,
+        error: `DNS lookup timed out for "${domain}". Check your internet connection and try again.`
+      };
+    }
+    return {
+      exists: false,
+      error: `Could not verify "${domain}" — network error. Check your internet connection.`
+    };
+  }
+}
+
 export function generateWebsiteScan(domainInput: string): WebsiteScanResult | null {
   // ── Step 1: Validate that the input is actually a website ──────────
   const validation = validateWebsite(domainInput);

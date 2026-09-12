@@ -1,0 +1,12 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "files.associations": {
+    "*.html": "html",
+    "*.css": "css",
+    "*.ts": "typescript",
+    "*.tsx": "typescriptreact"
+  },
+  "liveServer.settings.defaultBrowser": "chrome"
+}
