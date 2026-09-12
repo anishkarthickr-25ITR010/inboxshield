@@ -87,7 +87,8 @@ export const PrivacyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!isSimulating || isDemoAttackActive) return;
 
     const interval = setInterval(() => {
-      const newReq = generateRandomRequest('example.com');
+      const activeSource = requests[0]?.sourceWebsite || 'google.com';
+      const newReq = generateRandomRequest(activeSource);
       // Apply protection rules to new request
       if (
         (newReq.classification === 'tracker' && protectionSettings.blockTrackers) ||

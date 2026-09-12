@@ -7,6 +7,8 @@ export const NetworkGraph: React.FC = () => {
   const { requests } = usePrivacy();
   const [selectedNode, setSelectedNode] = useState<DomainNode | null>(null);
 
+  const activeDomain = requests[0]?.sourceWebsite || 'google.com';
+
   // Core central topology nodes
   const nodes: DomainNode[] = [
     {
@@ -21,7 +23,7 @@ export const NetworkGraph: React.FC = () => {
     },
     {
       id: 'origin',
-      name: 'example.com',
+      name: activeDomain,
       category: 'First-Party Site',
       requestsCount: 28,
       blockedCount: 0,
@@ -31,7 +33,7 @@ export const NetworkGraph: React.FC = () => {
     },
     {
       id: 'analytics',
-      name: 'analytics.example.com',
+      name: `analytics.${activeDomain}`,
       category: 'Analytics',
       requestsCount: 42,
       blockedCount: 42,
@@ -41,7 +43,7 @@ export const NetworkGraph: React.FC = () => {
     },
     {
       id: 'ads',
-      name: 'ads.example.net',
+      name: `ads.${activeDomain}`,
       category: 'Advertising',
       requestsCount: 88,
       blockedCount: 88,
@@ -51,7 +53,7 @@ export const NetworkGraph: React.FC = () => {
     },
     {
       id: 'tracker',
-      name: 'tracker.example.net',
+      name: `tracker.${activeDomain}`,
       category: 'Fingerprinting',
       requestsCount: 14,
       blockedCount: 14,
@@ -61,7 +63,7 @@ export const NetworkGraph: React.FC = () => {
     },
     {
       id: 'cdn',
-      name: 'cdn.example.com',
+      name: `cdn.${activeDomain}`,
       category: 'Infrastructure',
       requestsCount: 65,
       blockedCount: 0,
@@ -71,7 +73,7 @@ export const NetworkGraph: React.FC = () => {
     },
     {
       id: 'social',
-      name: 'social.example.net',
+      name: `social.${activeDomain}`,
       category: 'Social Tracking',
       requestsCount: 31,
       blockedCount: 31,

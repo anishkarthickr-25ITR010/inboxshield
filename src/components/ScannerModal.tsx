@@ -69,9 +69,23 @@ export const ScannerModal: React.FC = () => {
     await delay(800);
     setScanStep('5/5 Calculating privacy risk score...');
 
-    await delay(600);
     const res = generateWebsiteScan(domainInput);
     setScanResult(res);
+
+    // Persist real user scan to local database (port 8000 API)
+    try {
+      await fetch('http://localhost:8001/api/scans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(res)
+      });
+      console.log(`[Local Database] Successfully stored scan result for: ${res.domain}`);
+    } catch (e) {
+      // Fallback local storage backup
+      const history = JSON.parse(localStorage.getItem('privacy_gate_scans') || '[]');
+      localStorage.setItem('privacy_gate_scans', JSON.stringify([res, ...history]));
+    }
+
     setIsScanning(false);
     setScanStep('');
   };

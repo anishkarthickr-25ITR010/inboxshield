@@ -4,7 +4,7 @@ export const INITIAL_REQUESTS: NetworkRequest[] = [
   {
     id: 'req-101',
     timestamp: '11:42:05',
-    sourceWebsite: 'example.com',
+    sourceWebsite: 'google.com',
     destinationDomain: 'google.com',
     requestType: 'GET',
     classification: 'allowed',
@@ -15,8 +15,8 @@ export const INITIAL_REQUESTS: NetworkRequest[] = [
   {
     id: 'req-102',
     timestamp: '11:42:06',
-    sourceWebsite: 'example.com',
-    destinationDomain: 'analytics.example.com',
+    sourceWebsite: 'google.com',
+    destinationDomain: 'analytics.google.com',
     requestType: 'POST',
     classification: 'tracker',
     category: 'Analytics',
@@ -27,8 +27,8 @@ export const INITIAL_REQUESTS: NetworkRequest[] = [
   {
     id: 'req-103',
     timestamp: '11:42:07',
-    sourceWebsite: 'example.com',
-    destinationDomain: 'cdn.example.com',
+    sourceWebsite: 'google.com',
+    destinationDomain: 'cdn.google.com',
     requestType: 'GET',
     classification: 'suspicious',
     category: 'Infrastructure',
@@ -38,8 +38,8 @@ export const INITIAL_REQUESTS: NetworkRequest[] = [
   {
     id: 'req-104',
     timestamp: '11:42:08',
-    sourceWebsite: 'example.com',
-    destinationDomain: 'tracker.example.net',
+    sourceWebsite: 'google.com',
+    destinationDomain: 'tracker.doubleclick.net',
     requestType: 'GET',
     classification: 'fingerprint',
     category: 'Fingerprinting',
@@ -50,7 +50,7 @@ export const INITIAL_REQUESTS: NetworkRequest[] = [
   {
     id: 'req-105',
     timestamp: '11:42:10',
-    sourceWebsite: 'example.com',
+    sourceWebsite: 'google.com',
     destinationDomain: 'connect.facebook.net',
     requestType: 'POST',
     classification: 'tracker',
@@ -62,7 +62,7 @@ export const INITIAL_REQUESTS: NetworkRequest[] = [
   {
     id: 'req-106',
     timestamp: '11:42:12',
-    sourceWebsite: 'example.com',
+    sourceWebsite: 'google.com',
     destinationDomain: 'telemetry.tracker.org',
     requestType: 'POST',
     classification: 'leak',
@@ -79,7 +79,7 @@ export const INITIAL_TRACKERS: TrackerItem[] = [
     id: 'trk-1',
     name: 'Google Analytics',
     category: 'Analytics',
-    domain: 'analytics.example.com',
+    domain: 'analytics.google.com',
     riskLevel: 'medium',
     requestsCount: 142,
     blockedCount: 140,
@@ -115,7 +115,7 @@ export const INITIAL_TRACKERS: TrackerItem[] = [
     id: 'trk-4',
     name: 'Canvas Fingerprinter',
     category: 'Fingerprinting',
-    domain: 'tracker.example.net',
+    domain: 'tracker.fingerprint.net',
     riskLevel: 'critical',
     requestsCount: 12,
     blockedCount: 12,
@@ -141,7 +141,7 @@ export const INITIAL_STORAGE: StorageItem[] = [
   {
     id: 'stg-1',
     name: 'session_id',
-    domain: 'example.com',
+    domain: 'user-site.com',
     type: 'Cookie',
     duration: 'Session',
     isThirdParty: false,
@@ -174,7 +174,7 @@ export const INITIAL_STORAGE: StorageItem[] = [
   {
     id: 'stg-4',
     name: 'user_preferences_v1',
-    domain: 'example.com',
+    domain: 'user-site.com',
     type: 'LocalStorage',
     duration: 'Persistent',
     isThirdParty: false,
@@ -196,7 +196,7 @@ export const INITIAL_STORAGE: StorageItem[] = [
   {
     id: 'stg-6',
     name: 'cache_vector_db',
-    domain: 'example.com',
+    domain: 'user-site.com',
     type: 'IndexedDB',
     duration: 'Persistent',
     isThirdParty: false,
@@ -210,7 +210,7 @@ export const INITIAL_LEAKS: SensitiveDataLeak[] = [
   {
     id: 'leak-1',
     timestamp: '11:42:12',
-    sourceWebsite: 'example.com',
+    sourceWebsite: 'user-site.com',
     destinationDomain: 'telemetry.tracker.org',
     detectedItems: ['Email address', 'IP address', 'Device ID'],
     payloadSnippet: 'POST /v1/collect HTTP/1.1\nHost: telemetry.tracker.org\nContent-Type: application/json\n\n{"user_email":"user.test@demo-privacy.org","ip":"192.168.1.105","device_id":"uuid-a8f9-4321"}',
@@ -230,7 +230,7 @@ export const INITIAL_LEAKS: SensitiveDataLeak[] = [
   {
     id: 'leak-3',
     timestamp: '10:54:15',
-    sourceWebsite: 'portal.example.com',
+    sourceWebsite: 'portal.user-site.com',
     destinationDomain: 'metrics-raw.net',
     detectedItems: ['Authentication token', 'IP address'],
     payloadSnippet: 'POST /log HTTP/1.1\nAuthorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
@@ -239,15 +239,16 @@ export const INITIAL_LEAKS: SensitiveDataLeak[] = [
   }
 ];
 
-export function generateRandomRequest(source: string = 'example.com'): NetworkRequest {
+export function generateRandomRequest(source: string = 'google.com'): NetworkRequest {
+  const cleanSource = source.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0] || 'google.com';
   const domains = [
-    { domain: 'analytics.example.com', class: 'tracker', cat: 'Analytics', action: 'blocked' },
-    { domain: 'ads.example.net', class: 'tracker', cat: 'Advertising', action: 'blocked' },
-    { domain: 'social.example.org', class: 'tracker', cat: 'Social Tracking', action: 'blocked' },
-    { domain: 'tracker.example.net', class: 'fingerprint', cat: 'Fingerprinting', action: 'blocked' },
-    { domain: 'cdn.example.com', class: 'allowed', cat: 'Infrastructure', action: 'allowed' },
-    { domain: 'api.example.com', class: 'allowed', cat: 'Essential', action: 'allowed' },
-    { domain: 'telemetry.data.io', class: 'leak', cat: 'Analytics', action: 'blocked' }
+    { domain: `analytics.${cleanSource}`, class: 'tracker', cat: 'Analytics', action: 'blocked' },
+    { domain: `ads.${cleanSource}`, class: 'tracker', cat: 'Advertising', action: 'blocked' },
+    { domain: `social-tracker.net`, class: 'tracker', cat: 'Social Tracking', action: 'blocked' },
+    { domain: `fingerprint.${cleanSource}`, class: 'fingerprint', cat: 'Fingerprinting', action: 'blocked' },
+    { domain: `cdn.${cleanSource}`, class: 'allowed', cat: 'Infrastructure', action: 'allowed' },
+    { domain: `api.${cleanSource}`, class: 'allowed', cat: 'Essential', action: 'allowed' },
+    { domain: `telemetry.data.io`, class: 'leak', cat: 'Analytics', action: 'blocked' }
   ];
 
   const chosen = domains[Math.floor(Math.random() * domains.length)];
